@@ -1,0 +1,1 @@
+/* Stubbed import for select photos from instagram */

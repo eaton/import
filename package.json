@@ -48,5 +48,14 @@
     "shx": "^0.3.4",
     "tsimp": "^2.0.11",
     "typescript": "^5.4.3"
+  },
+  "dependencies": {
+    "@eatonfyi/fs-jetpack": "github:eaton/fs-jetpack",
+    "@eatonfyi/html": "github:eaton/html",
+    "@eatonfyi/ids": "github:eaton/ids",
+    "@eatonfyi/keynote-extractor": "github:eaton/keynote-extractor",
+    "@eatonfyi/schema": "github:eaton/schema",
+    "@eatonfyi/serializers": "github:eaton/serializers",
+    "@eatonfyi/text": "github:eaton/text"
   }
 }

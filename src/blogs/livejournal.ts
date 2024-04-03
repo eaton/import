@@ -1,0 +1,1 @@
+/* Stubbed import for livejournal posts in XML format */

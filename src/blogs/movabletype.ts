@@ -1,0 +1,1 @@
+/* Stubbed import for posts from assorted movabletype blogs, including jeff.viapositiva.net */
