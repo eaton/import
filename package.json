@@ -56,6 +56,8 @@
     "@eatonfyi/keynote-extractor": "github:eaton/keynote-extractor",
     "@eatonfyi/schema": "github:eaton/schema",
     "@eatonfyi/serializers": "github:eaton/serializers",
-    "@eatonfyi/text": "github:eaton/text"
+    "@eatonfyi/text": "github:eaton/text",
+    "@serguun42/tumblr.js": "^4.2.0",
+    "dotenv": "^16.4.5"
   }
 }
