@@ -50,6 +50,7 @@
     "typescript": "^5.4.3"
   },
   "dependencies": {
+    "@eatonfyi/dates": "github:eaton/dates",
     "@eatonfyi/fs-jetpack": "github:eaton/fs-jetpack",
     "@eatonfyi/html": "github:eaton/html",
     "@eatonfyi/ids": "github:eaton/ids",
@@ -57,7 +58,9 @@
     "@eatonfyi/schema": "github:eaton/schema",
     "@eatonfyi/serializers": "github:eaton/serializers",
     "@eatonfyi/text": "github:eaton/text",
+    "@omnivore-app/api": "^1.0.4",
     "@serguun42/tumblr.js": "^4.2.0",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "node-pinboard": "^2.0.1"
   }
 }
