@@ -21,6 +21,7 @@
     "README.md"
   ],
   "scripts": {
+    "run": "tsimp ./src/index.ts",
     "build": "pkgroll",
     "clean": "shx rm -rf dist",
     "prepare": "npm run clean && npm run build",
@@ -62,9 +63,9 @@
     "@omnivore-app/api": "^1.0.4",
     "@serguun42/tumblr.js": "^4.2.0",
     "dotenv": "^16.4.5",
-    "pino": "^8.20.0",
-    "smob": "^1.5.0",
     "mdb-reader": "^3.0.0",
-    "node-pinboard": "^2.0.1"
+    "node-pinboard": "^2.0.1",
+    "pino": "^8.20.0",
+    "smob": "^1.5.0"
   }
 }
