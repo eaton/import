@@ -62,7 +62,12 @@
     "@omnivore-app/api": "^1.0.4",
     "@serguun42/tumblr.js": "^4.2.0",
     "dotenv": "^16.4.5",
+<<<<<<< HEAD
+    "mdb-reader": "^3.0.0",
+    "node-pinboard": "^2.0.1"
+=======
     "pino": "^8.20.0",
     "smob": "^1.5.0"
+>>>>>>> 5b50646 (Sure, why not)
   }
 }
