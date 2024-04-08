@@ -86,18 +86,32 @@ export class BaseImport {
    * The cache should be UPDATED whenever possible rather than REPLACED.
    */
   async populate(): Promise<unknown> {
+    const full = await this.cacheIsFilled()
+    if (!full) await this.fillCache();
     return Promise.resolve();
   }
   
+  async cacheIsFilled(): Promise<boolean> {
+    return Promise.resolve(false);
+  }
+
+  async fillCache(): Promise<unknown> {
+    return Promise.resolve();
+  }
+
+  async loadCache(): Promise<unknown> {
+    return Promise.resolve();
+  }
+
   /**
-   * Performs internal processing steps necessary to scrub, reformat, etc. any of the cached data. 
+   * Performs internal processing steps necessary to scrub, reformat, etc. any of the cached data.
    */
   async process(): Promise<unknown> {
     return Promise.resolve();
   }
 
   /**
-   * Generates final data in the output directory.
+   * Generates final data in the output directory, including merging data from multiple sources.
    */
   async finalize(): Promise<unknown> {
     return Promise.resolve();
