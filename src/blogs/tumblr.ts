@@ -1,16 +1,17 @@
-import { BaseImport, BaseImportOptions } from "../../base-importer.js";
+import { BaseImport, BaseImportOptions } from "../base-importer.js";
 import { Client } from '@serguun42/tumblr.js';
-import * as TumblrSchemas from './schemas.js';
-import { BlogSchema, BookmarkSchema, SocialMediaPostingSchema, Thing } from '@eatonfyi/schema';
+import * as TumblrSchemas from './util/tumblr-schema.js';
+import { BlogSchema, BookmarkSchema, SocialMediaPostingSchema } from '@eatonfyi/schema';
 import { z } from 'zod';
 import { Json } from "@eatonfyi/serializers";
-import { normalizeBookmarkUrl } from "../../util.js";
+import { makeId, normalizeBookmarkUrl } from "../util.js";
 
 interface TumblrImportOptions extends BaseImportOptions {
   consumer_key?: string;
   consumer_secret?: string;
   token?: string;
   token_secret?: string;
+  blogList?: string[]
 }
 
 interface CachedData {
@@ -38,7 +39,7 @@ export class TumblrImport extends BaseImport {
     return Promise.resolve(flag === 'file');
   }
 
-  override async fillCache(): Promise<CachedData> {
+  override async fillCache(): Promise<unknown> {
     const t = new Client({
       consumer_key: this.options.consumer_key,
       consumer_secret: this.options.consumer_secret,
@@ -49,8 +50,6 @@ export class TumblrImport extends BaseImport {
     const userRaw = await t.userInfo();
     const { blogs, ...user } = TumblrSchemas.UserInfoSchema.parse(userRaw).user;
     this.cache.write('user-info.json', user, { jsonIndent: 2 });
-
-    const output: CachedData = { user, blogs: blogs ?? [], posts: [] };
 
     for (const blog of blogs ?? []) {
       if (blog.admin && blog.name) {
@@ -64,12 +63,11 @@ export class TumblrImport extends BaseImport {
 
         for (const post of posts ?? []) {
           blogDir.write(`post-${post.id}.json`, post);
-          output.posts.push(post);
         }
       }
     }
 
-    return Promise.resolve(output);
+    return Promise.resolve();
   }
 
   override async loadCache(): Promise<CachedData> {
@@ -98,7 +96,7 @@ export class TumblrImport extends BaseImport {
           platform: 'organization:tumblr',
           creator: 'person/me'
         });
-        this.output.dir(entity.type).write(`${entity.identifier}.json`, entity);
+        this.output.write(`${makeId(entity)}.json`, entity);
         this.log.info(`Staged ${entity.type} ${entity.identifier}`);
       }
     }
@@ -127,7 +125,7 @@ export class TumblrImport extends BaseImport {
             partOf: post.blog_name ? 'blog/' + post.blog_name : undefined,
             keywords: post.tags?.length ? post.tags : undefined,
           });
-          this.output.dir(entity.additionalType ?? entity.type).write(`${entity.identifier}.json`, entity);
+          this.output.write(`${makeId(entity)}.json`, entity);
           this.log.info(`Staged ${entity.additionalType ?? entity.type} ${entity.identifier}`);
         }
 
@@ -137,12 +135,12 @@ export class TumblrImport extends BaseImport {
           name: post.title,
           url: post.post_url,
           description: post.description,
-          body: post.body,
+          text: { html: post.body },
           date: post.timestamp ? { created: new Date(post.timestamp * 1000) } : undefined,
           partOf: post.blog_name ? 'blog/' + post.blog_name : undefined,
           keywords: post.tags?.length ? post.tags : undefined,
         });
-        this.output.dir(entity.additionalType ?? entity.type).write(`${entity.identifier}.json`, entity);
+        this.output.write(`${makeId(entity)}.json`, entity);
         this.log.info(`Staged ${entity.additionalType ?? entity.type} ${entity.identifier}`);
       }
     }
