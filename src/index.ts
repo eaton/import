@@ -1,10 +1,18 @@
 import { MovableTypeImport } from "./blogs/movabletype.js";
 import { TumblrImport } from "./blogs/tumblr.js";
 
-const tb = new TumblrImport();
+const tb = new TumblrImport({
+  blogList: ['govertainment', 'plf', 'cmswhoops'],
+});
 tb.output.remove();
-await tb.runImport();
 
-const mt = new MovableTypeImport({ mysql_db: 'mt2005' });
+const mt = new MovableTypeImport({
+  mysql_db: 'mt2005',
+  userList: [4],
+  blogList: [3, 4]
+});
 mt.output.remove();
+
+
+await tb.runImport();
 await mt.runImport();
