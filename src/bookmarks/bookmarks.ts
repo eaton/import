@@ -5,6 +5,7 @@ import { Json, Csv, NdJson } from "@eatonfyi/serializers";
 import { extract } from "@eatonfyi/html";
 import { normalizeBookmarkUrl } from "../util.js";
 import jetpack from "@eatonfyi/fs-jetpack";
+import MDBReader from "mdb-reader";
 
 export class BookmarkImport extends BaseImport {
   constructor(options: BaseImportOptions = {}) {
@@ -32,6 +33,8 @@ export class BookmarkImport extends BaseImport {
     jetpack.setSerializer('.ndjson', new NdJson());
 
     (await favorites(this.input.path('favorites.html'))).map(b => this.setBookmark(b));
+    predicate().map(b => this.setBookmark(b));
+    havana().map(b => this.setBookmark(b));
     delicious(this.input.path('delicious.json')).map(b => this.setBookmark(b));
     pinboard(this.input.path('pinboard.json')).map(b => this.setBookmark(b));
     instapaper(this.input.path('instapaper.csv')).map(b => this.setBookmark(b));
@@ -161,7 +164,7 @@ export const pocket = async (filePath: string) => {
 export const favorites = async (filePath: string) => {
   const html = jetpack.read(filePath) ?? '';
 
-  const fileDate = jetpack.inspect(filePath)?.birthTime;
+  const fileDate = jetpack.inspect(filePath)?.modifyTime;
 
   const template = [{
     $: 'body > dl > dt > a',
@@ -192,3 +195,59 @@ export const favorites = async (filePath: string) => {
   }).filter(b => b !== undefined));
 }
 
+function havana() {
+  const input = jetpack.dir(process.env.INPUT_MDB ?? '');
+  const reader = new MDBReader(input.read('havana.mdb', 'buffer') as Buffer);
+
+  // In the future we could spread these between create and modification.
+  let created = reader.getCreationDate() ?? undefined;
+  created ??= input.inspect('havana.mdb')?.modifyTime;
+
+
+  const table = reader.getTable('Link');
+  const categories = reader.getTable('Category').getData();
+  const linkTags = reader.getTable('LinkCategory').getData();
+
+  const links = table.getData().map(link => {
+    if (link.url) {
+      const normalized = normalizeBookmarkUrl(link.url.toString());
+      if (normalized.success) {
+        return BookmarkSchema.parse({
+          identifier: normalized.hash,
+          partOf: 'havanamod',
+          description: link.summary?.toString().length ? link.summary : undefined,
+          sharedContent: normalized.url.href,
+          name: link.title?.toString().length ? link.title : undefined,
+          date: created ? { created } : undefined,
+        });
+      }
+    }
+  });
+  return links.filter(l => !!l);
+}
+
+function predicate() {
+  const input = jetpack.dir(process.env.INPUT_MDB ?? '');
+  const reader = new MDBReader(input.read('predicate.mdb', 'buffer') as Buffer);
+
+  // In the future we could spread these between create and modification.
+  let created = reader.getCreationDate() ?? undefined;
+  created ??= input.inspect('predicate.mdb')?.modifyTime;
+
+  const table = reader.getTable('link');
+  const links = table.getData().map(link => {
+    if (link.url) {
+      const normalized = normalizeBookmarkUrl(link.url.toString());
+      if (normalized.success) {
+        return BookmarkSchema.parse({
+          identifier: normalized.hash,
+          partOf: 'predicatenet',
+          sharedContent: normalized.url.href,
+          name: link.title?.toString().length ? link.title : undefined,
+          date: created ? { created } : undefined,
+        });
+      }
+    }
+  });
+  return links.filter(l => !!l);
+}
