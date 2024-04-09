@@ -1,6 +1,5 @@
 import { NormalizedUrl } from "@eatonfyi/urls";
 import { nanohash } from "@eatonfyi/ids";
-import { BodySchema } from '@eatonfyi/schema';
 
 type NormalizerResult =  { success: false } | { success: true, url: NormalizedUrl, hash: string };
 
