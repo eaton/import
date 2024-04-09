@@ -19,6 +19,3 @@ for (const db of input.find({ matching: '*.mdb' })) {
     }
   }
 }
-
-
-
