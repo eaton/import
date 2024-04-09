@@ -27,9 +27,9 @@ export class BookmarkImport extends BaseImport {
   }
 
   override async process(): Promise<unknown> {
-    jetpack.setSerializer('.csv', Csv);
-    jetpack.setSerializer('.json', Json);
-    jetpack.setSerializer('.ndjson', NdJson);
+    jetpack.setSerializer('.csv', new Csv());
+    jetpack.setSerializer('.json', new Json());
+    jetpack.setSerializer('.ndjson', new NdJson());
 
     (await favorites(this.input.path('favorites.html'))).map(b => this.setBookmark(b));
     delicious(this.input.path('delicious.json')).map(b => this.setBookmark(b));

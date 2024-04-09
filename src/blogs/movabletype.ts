@@ -76,7 +76,7 @@ export class MovableTypeImport extends BaseImport {
   }
 
   override async loadCache(): Promise<CachedData> {
-    this.cache.setSerializer('.json', Json);
+    this.cache.setSerializer('.json', new Json());
     return Promise.resolve({
       authors: this.cache.read('authors.json', 'auto'),
       blogs: this.cache.read('blogs.json', 'auto'),

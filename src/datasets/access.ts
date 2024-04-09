@@ -4,7 +4,7 @@ import jetpack from "@eatonfyi/fs-jetpack";
 import { NdJson } from "@eatonfyi/serializers";
 import path from 'path';
 
-jetpack.setSerializer('.ndjson', NdJson);
+jetpack.setSerializer('.ndjson', new NdJson());
 
 const input = jetpack.dir(process.env.INPUT_MDB ?? '');
 const cache = jetpack.dir('./cache');

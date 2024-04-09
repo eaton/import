@@ -71,7 +71,7 @@ export class TumblrImport extends BaseImport {
   }
 
   override async loadCache(): Promise<CachedData> {
-    this.cache.setSerializer('.json', Json);
+    this.cache.setSerializer('.json', new Json());
     return Promise.resolve({
       user: this.cache.read('user-info.json', 'auto') as z.output<typeof TumblrSchemas.UserSchema>,
       blogs: this.cache.find({ matching: '*/blog-info.json' }).map(b => this.cache.read(b, 'auto') as z.output<typeof TumblrSchemas.BlogSchema>),
