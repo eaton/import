@@ -1,16 +1,16 @@
-import { extractXml, ExtractTemplate } from '@eatonfyi/html';
+import { extract, ExtractTemplateObject } from '@eatonfyi/html';
 import { z } from 'zod';
 import { PathLike } from 'fs';
 import fs from 'fs/promises';
 
-const authorTemplate: ExtractTemplate = {
+const authorTemplate: ExtractTemplateObject = {
   $: '> author',
   name: '> name | text',
   isAnonymous: '> isAnonymous',
   username: '> username | text',
 }
 
-const template: ExtractTemplate = {
+const template: ExtractTemplateObject = {
   categories: [{
     $: 'disqus > category',
     did: '| attr:dsq\:id',
@@ -119,13 +119,13 @@ export async function parseDisqus(input: PathLike) {
   // This is an extremely gnarly hack that shouldn't exist, and will be removed soon.
   // Our 'extract' function needs to be told that it's in XML mode rather than HMTL mode,
   const xml = (await fs.readFile(input)).toString();
-  const parsed = await extractXml(xml, template, schema);
+  const parsed = await extract(xml, template, schema, { xml: true });
 
   // Also sick. Our fancy all-singing all-dancing return type inference can't tell if the ouput
   // is one or several of the incoming schema. Probably the special handling for 'they didn't
   // pass in a schema'
 
-  return Promise.resolve(groupDisqus(Array.isArray(parsed) ? parsed[0] : parsed));
+  return Promise.resolve(groupDisqus(parsed));
 }
 
 function groupDisqus(input: z.output<typeof schema>) {
