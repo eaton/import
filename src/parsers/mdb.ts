@@ -10,7 +10,8 @@ export async function parseMdb(filePath: PathLike) {
   const tables = Object.fromEntries(tableNames.map(t => [ t, reader.getTable(t).getData() ]));
 
   const info = await fs.stat(filePath);
-  const created = reader.getCreationDate() ?? info.ctime;
+  const created = reader.getCreationDate() ?? info.birthtime;
+  const modified = info.mtime;
 
-  return { name, created, tables };
+  return { name, created, modified, tables };
 }

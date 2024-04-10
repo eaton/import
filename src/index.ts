@@ -1,6 +1,7 @@
 import { MovableTypeImport } from "./blogs/movabletype.js";
 import { TumblrImport } from "./blogs/tumblr.js";
 import { BookmarkImport } from "./bookmarks/bookmarks.js";
+import { parseMdb } from "./parsers/mdb.js";
 
 const tb = new TumblrImport({
   blogList: ['govertainment', 'plf', 'cmswhoops'],

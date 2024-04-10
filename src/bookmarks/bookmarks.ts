@@ -1,13 +1,21 @@
 import { BaseImport, BaseImportOptions } from "../base-importer.js";
 import { Bookmark, BookmarkSchema } from '@eatonfyi/schema';
 import { z } from 'zod';
-import { Json, Csv, NdJson } from "@eatonfyi/serializers";
+import { Json, Csv, NdJson, Plist } from "@eatonfyi/serializers";
 import { extract } from "@eatonfyi/html";
 import { normalizeBookmarkUrl } from "../util.js";
 import jetpack from "@eatonfyi/fs-jetpack";
+import { drizzle } from "drizzle-orm/mysql2";
+import mysql, { raw } from "mysql2/promise";
+import { eq } from 'drizzle-orm';
+import { parse } from '@eatonfyi/dates';
+
 import MDBReader from "mdb-reader";
+import { pluginData } from "../blogs/util/mt-database.js";
 
 export class BookmarkImport extends BaseImport {
+  rejects = 0;
+
   constructor(options: BaseImportOptions = {}) {
     super({
       name: 'bookmarks',
@@ -21,7 +29,8 @@ export class BookmarkImport extends BaseImport {
     if (b === undefined) return;
     
     if (this.bookmarks.has(b.identifier)) {
-      this.log.info(`Rejected ${b.partOf}: ${b.sharedContent}`);
+      this.rejects++;
+      this.log.debug(`Rejected ${b.partOf}: ${b.sharedContent}`);
     } else {
       this.bookmarks.set(b.identifier, b);
     }
@@ -35,14 +44,19 @@ export class BookmarkImport extends BaseImport {
     (await favorites(this.input.path('favorites.html'))).map(b => this.setBookmark(b));
     predicate().map(b => this.setBookmark(b));
     havana().map(b => this.setBookmark(b));
+    (await mtblogroll()).map(b => this.setBookmark(b));
     delicious(this.input.path('delicious.json')).map(b => this.setBookmark(b));
+    viapositivadrupal(this.input.path('viapositiva-drupal.csv')).map(b => this.setBookmark(b));
+    goddy(this.input.path('goddy.csv')).map(b => this.setBookmark(b));
     pinboard(this.input.path('pinboard.json')).map(b => this.setBookmark(b));
     instapaper(this.input.path('instapaper.csv')).map(b => this.setBookmark(b));
     (await pocket(this.input.path('getpocket.html'))).map(b => this.setBookmark(b));
 
     const deduped = [...this.bookmarks.values()];
     this.output.write('bookmarks.ndjson', deduped);
+    this.output.write('bookmarks.csv', deduped);
 
+    this.log.info(`Saved ${this.bookmarks.size} bookmarks, discarded ${this.rejects} duplicates.`);
     return Promise.resolve();
   }
 }
@@ -64,7 +78,7 @@ export const instapaper = (filePath: string) => {
         partOf: 'instapaper',
         sharedContent: normalized.url.href,
         name: link.Title,
-        date: { created: link.Timestamp } ,
+        date: link.Timestamp,
       });
     }
   }).filter(b => b !== undefined);
@@ -91,7 +105,7 @@ export const pinboard = (filePath: string) => {
         sharedContent: normalized.url.href,
         name: link.description,
         description: link.extended,
-        date: { created: link.time } ,
+        date: link.time,
         keywords: link.tags,
       });
     }
@@ -119,7 +133,7 @@ export const delicious = (filePath: string) => {
         sharedContent: normalized.url.href,
         name: link.description,
         description: link.extended,
-        date: { created: new Date(link.created * 1000) } ,
+        date: new Date(link.created * 1000),
         keywords: link.tags,
       });
     }
@@ -151,10 +165,10 @@ export const pocket = async (filePath: string) => {
     if (normalized.success) {
       return BookmarkSchema.parse({
         identifier: normalized.hash,
-        partOf: 'pocket',
+        partOf: 'getpocket',
         sharedContent: normalized.url.href,
-        name: link.name,
-        date: { created: link.date } ,
+        name: URL.canParse(link.name ?? '') ? undefined : link.name,
+        date: link.date,
         keywords: link.tags,
       });
     }
@@ -163,8 +177,9 @@ export const pocket = async (filePath: string) => {
 
 export const favorites = async (filePath: string) => {
   const html = jetpack.read(filePath) ?? '';
+  const inspect = jetpack.inspect(filePath, { times: true });
 
-  const fileDate = jetpack.inspect(filePath)?.modifyTime;
+  const fileDate = inspect?.modifyTime;
 
   const template = [{
     $: 'body > dl > dt > a',
@@ -189,7 +204,7 @@ export const favorites = async (filePath: string) => {
         partOf: 'favorites.html',
         sharedContent: normalized.url.href,
         name: link.name,
-        date: link.date ? { created: link.date ?? fileDate } : undefined,
+        date: link.date ?? fileDate ?? undefined,
       });
     }
   }).filter(b => b !== undefined));
@@ -201,8 +216,8 @@ function havana() {
 
   // In the future we could spread these between create and modification.
   let created = reader.getCreationDate() ?? undefined;
-  created ??= input.inspect('havana.mdb')?.modifyTime;
-
+  // created ??= input.inspect('havana.mdb', { times: true })?.birthTime;
+  const modified = input.inspect('havana.mdb', { times: true })?.modifyTime;
 
   const table = reader.getTable('Link');
   const categories = reader.getTable('Category').getData();
@@ -218,7 +233,7 @@ function havana() {
           description: link.summary?.toString().length ? link.summary : undefined,
           sharedContent: normalized.url.href,
           name: link.title?.toString().length ? link.title : undefined,
-          date: created ? { created } : undefined,
+          date: created ?? modified ?? undefined,
         });
       }
     }
@@ -232,7 +247,8 @@ function predicate() {
 
   // In the future we could spread these between create and modification.
   let created = reader.getCreationDate() ?? undefined;
-  created ??= input.inspect('predicate.mdb')?.modifyTime;
+  // created ??= input.inspect('predicate.mdb', { times: true })?.birthTime;
+  const modified = input.inspect('havana.mdb', { times: true })?.modifyTime;
 
   const table = reader.getTable('link');
   const links = table.getData().map(link => {
@@ -244,10 +260,129 @@ function predicate() {
           partOf: 'predicatenet',
           sharedContent: normalized.url.href,
           name: link.title?.toString().length ? link.title : undefined,
-          date: created ? { created } : undefined,
+          date: created ?? modified ?? undefined,
         });
       }
     }
   });
   return links.filter(l => !!l);
+}
+
+type MtBlogrollEntry = {
+  date?: Date,
+  rel?: string,
+  name?: string,
+  desc?: string,
+  uri?: string,
+  category?: string,
+  blog_id?: string
+};
+
+async function mtblogroll() {
+  const connection = await mysql.createConnection({
+    database: 'mt2005',
+    port: 3306,
+    host: process.env.MYSQL_HOST ?? '192.168.88.119',
+    password: process.env.MYSQL_PASS,
+    user: process.env.MYSQL_USER ?? 'root',
+  });
+  const db = drizzle(connection);
+
+  const entries = await db.select({
+    key: pluginData.key,
+    data: pluginData.data
+  }).from(pluginData).where(eq(pluginData.plugin, 'Blogroll'));
+  connection.destroy();
+
+  const rawLinks = entries.map(e => {
+    if (e.data && e.key) {
+      const date = e.key.slice(0,8);
+      const fields = e.data.split(/[\n\r\t]+/)
+        .map(s => s.split(/[\x00-\x07\b]+/))
+        .filter(a => a[1] !== '1234')
+        .map(a => a.reverse());
+
+      let u: MtBlogrollEntry = Object.fromEntries(fields);
+
+      u.date = parse(date, 'yyyyMMdd', Date.now());
+      u.rel = u.rel?.replace(/^[^\w\s\d]/, '');
+      u.desc = u.desc?.replace(/^[^\w\s\d]/, '');
+      u.name = u.name?.replace(/^[^\w\s\d]|\f|\x0B|\u000b/, '');
+      u.category = u.category?.replace(/^[^\w \d]/, '').toLocaleLowerCase();
+
+      u.rel = u.rel?.length ? u.rel : undefined;
+      u.desc = u.desc?.length ? u.desc : undefined;
+
+      u.uri = u.uri?.slice(1);
+      return u;
+    }
+  }).filter(l => l?.blog_id === '3')
+
+  const bookmarks = rawLinks.map(l => {
+    if (l?.uri) {
+      const normalized = normalizeBookmarkUrl(l?.uri);
+      if (normalized.success) {
+        return BookmarkSchema.parse({
+          identifier: normalized.hash,
+          partOf: 'viapositiva',
+          sharedContent: normalized.url.href,
+          name: l.name,
+          descriptyion: l.desc,
+          date: l.date ?? undefined,
+          keywords: [...l.rel?.split(' ') ?? [], l.category].filter(Boolean)
+        });
+      }
+    }
+  });
+
+  return Promise.resolve(bookmarks);
+}
+
+export const viapositivadrupal = (filePath: string) => {
+  const raw = jetpack.read(filePath, 'auto');
+
+  const parsed = z.array(z.object({
+    name: z.string(),
+    url: z.string(),
+    description: z.string().optional(),
+    created: z.coerce.number().transform(t => new Date(t * 1000))
+  })).parse(raw);
+
+  return parsed.map(link => {
+    const normalized = normalizeBookmarkUrl(link.url);
+    if (normalized.success) {
+      return BookmarkSchema.parse({
+        identifier: normalized.hash,
+        partOf: 'viapositiva',
+        sharedContent: normalized.url.href,
+        name: link.name,
+        description: link.description,
+        date: link.created ?? undefined,
+      });
+    }
+  }).filter(b => b !== undefined);
+}
+
+
+export const goddy = (filePath: string) => {
+  const raw = jetpack.read(filePath, 'auto');
+
+  const parsed = z.array(z.object({
+    name: z.string(),
+    url: z.string(),
+    created: z.coerce.number().transform(t => new Date(t * 1000))
+  })).parse(raw);
+
+  return parsed.map(link => {
+    const normalized = normalizeBookmarkUrl(link.url);
+    if (normalized.success) {
+      return BookmarkSchema.parse({
+        identifier: normalized.hash,
+        partOf: 'growingupgoddy',
+        sharedContent: normalized.url.href,
+        name: link.name,
+        date: link.created ?? undefined,
+      });
+    }
+  }).filter(b => b !== undefined);
 }
