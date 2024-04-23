@@ -1,5 +1,5 @@
 import { BaseImport, BaseImportOptions } from "../base-importer.js";
-import { eq, type InferSelectModel } from 'drizzle-orm';
+import { type InferSelectModel } from 'drizzle-orm';
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import { Json } from "@eatonfyi/serializers";
@@ -75,7 +75,7 @@ export class MovableTypeImport extends BaseImport {
     return Promise.resolve();
   }
 
-  override async loadCache(): Promise<CachedData> {
+  override async readCache(): Promise<CachedData> {
     this.cache.setSerializer('.json', new Json());
     return Promise.resolve({
       authors: this.cache.read('authors.json', 'auto'),
@@ -88,7 +88,7 @@ export class MovableTypeImport extends BaseImport {
   }
 
   override async process(): Promise<unknown> {
-    const data = await this.loadCache();
+    const data = await this.readCache();
 
     // Generate an Organization for SixApart
     // Generate a SoftwareProduct for MovableType

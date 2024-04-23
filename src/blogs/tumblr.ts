@@ -70,7 +70,7 @@ export class TumblrImport extends BaseImport {
     return Promise.resolve();
   }
 
-  override async loadCache(): Promise<CachedData> {
+  override async readCache(): Promise<CachedData> {
     this.cache.setSerializer('.json', new Json());
     return Promise.resolve({
       user: this.cache.read('user-info.json', 'auto') as z.output<typeof TumblrSchemas.UserSchema>,
@@ -86,7 +86,7 @@ export class TumblrImport extends BaseImport {
     // Generate a Bookmark for every Link entry
     // Generate an a SocialMediaPosting for each entry
     
-    const data = await this.loadCache();
+    const data = await this.readCache();
 
     for (const blog of data.blogs) {
       // Special-casing this one, as "eaton, elsewhere" is actually just

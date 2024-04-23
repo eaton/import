@@ -99,7 +99,7 @@ export class BaseImport {
     return Promise.resolve();
   }
 
-  async loadCache(): Promise<unknown> {
+  async readCache(): Promise<unknown> {
     return Promise.resolve();
   }
 
