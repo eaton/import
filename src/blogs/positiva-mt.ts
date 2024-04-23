@@ -90,6 +90,13 @@ export class MovableTypeImport extends BaseImport {
   override async process(): Promise<unknown> {
     const data = await this.loadCache();
 
+    // Generate an Organization for SixApart
+    // Generate a SoftwareProduct for MovableType
+    // Generate a Blog entry for each blog I maintained
+    // Generate an a SocialMediaPosting for each entry
+    // Generate a Comment for each reply to one of my posts
+    // Generate a Bookmark for every blogroll entry
+
     for (const entry of data.entries) {
       if (this.options.userList && !this.options.userList.includes(entry.authorId)) continue;
       if (entry.text === null) continue;

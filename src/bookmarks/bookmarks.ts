@@ -1,7 +1,7 @@
 import { BaseImport, BaseImportOptions } from "../base-importer.js";
 import { Bookmark, BookmarkSchema } from '@eatonfyi/schema';
 import { z } from 'zod';
-import { Json, Csv, NdJson, Plist } from "@eatonfyi/serializers";
+import { Json, Csv, NdJson } from "@eatonfyi/serializers";
 import { extract } from "@eatonfyi/html";
 import { normalizeBookmarkUrl } from "../util.js";
 import jetpack from "@eatonfyi/fs-jetpack";

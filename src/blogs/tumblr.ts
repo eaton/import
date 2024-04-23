@@ -80,6 +80,12 @@ export class TumblrImport extends BaseImport {
   }
 
   override async process(): Promise<unknown> {
+
+    // Generate an Organization for Tumblr
+    // Generate a Blog entry for each blog I maintained
+    // Generate a Bookmark for every Link entry
+    // Generate an a SocialMediaPosting for each entry
+    
     const data = await this.loadCache();
 
     for (const blog of data.blogs) {
