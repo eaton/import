@@ -24,6 +24,7 @@ export class BaseImport {
   private _input?: typeof jetpack;
   private _cache?: typeof jetpack;
   private _output?: typeof jetpack;
+  private _shared?: typeof jetpack;
   private _logger?: Logger;
 
   /**
@@ -56,7 +57,7 @@ export class BaseImport {
   }
 
   get output() {
-    this._output ??= jetpack.dir(this.options.base ?? '.').dir(this.options.output ?? path.join('output', this.name));
+    this._output ??= jetpack.dir(this.options.base ?? '.').dir(this.options.output ?? 'output');
     return this._output;
   }
 
