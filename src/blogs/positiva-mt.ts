@@ -15,7 +15,7 @@ import {
   pluginData
 } from './util/mt-database.js'
 
-interface MovableTypeImortOptions extends BaseImportOptions {
+export interface MovableTypeImortOptions extends BaseImportOptions {
   mysql_host?: string;
   mysql_port?: number;
   mysql_user?: string;
