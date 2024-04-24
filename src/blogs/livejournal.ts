@@ -13,6 +13,7 @@
 
 import { BaseImport, BaseImportOptions } from "../base-importer.js";
 import { extract, ExtractTemplateObject, fromLivejournal, toMarkdown } from "@eatonfyi/html";
+import { Frontmatter, FrontmatterInput } from "@eatonfyi/serializers";
 import { z } from 'zod';
 import { parse as parseDate, isBefore} from '@eatonfyi/dates';
 
@@ -134,10 +135,10 @@ export class LivejournalImport extends BaseImport {
 
       const formattedEntry = {
         ...entry,
-        body: fromLivejournal(entry.body ?? ''),
-        teaser: fromLivejournal(entry.body ?? '', { teaser: true }),
+        body: fromLivejournal(entry.body ?? '', { breaks: true, usernames: true }),
+        teaser: fromLivejournal(entry.body ?? '', { breaks: true, usernames: true, teaser: true }),
       }
-      this.queue.entries.push(entry);
+      this.queue.entries.push(formattedEntry);
 
       if (!this.options.ignoreComments) {
         for (const comment of comments ?? []) {
@@ -149,13 +150,30 @@ export class LivejournalImport extends BaseImport {
   }
 
   override async finalize() {
+    this.output.setSerializer('.md', new Frontmatter());
     for (const e of this.queue.entries) {
-      this.output.write(`entries/${e.id}.json`, e);
+      this.output.write(`content/${e.date.getFullYear()}/lj-${e.id}.md`, this.entryToMarkdown(e));
     }
-    for (const c of this.queue.comments) {
-      this.output.write(`comments/${c.entry}-${c.id}.json`, c);
-    }
-    this.input.copy('media/lj-photos', this.output.path('media'), { overwrite: true });
+    this.input.copy('media/lj-photos', this.output.path('media/lj'), { overwrite: true });
+  }
+
+  protected entryToMarkdown(input: LivejournalEntry) {
+    input.body &&= toMarkdown(input.body);
+    const md: FrontmatterInput = {
+      data: {
+        date: { created: input.date },
+        id: { lj: input.id },
+      },
+      content: input.body ?? ''
+    };
+
+    if (input.subject) md.data.name = input.subject;
+    if (input.mood) md.data.mood = input.mood;
+    if (input.music) md.data.music = input.music;
+    if (input.avatar) md.data.avatar = input.avatar;
+    if (input.comments?.length) md.data.comments = input.comments.length;
+
+    return md;
   }
 
   /**
@@ -210,7 +228,7 @@ export class LivejournalImport extends BaseImport {
         id:  chunks[11].slice(0,2).readUInt16LE(),
         subject: chunks[15].slice(0, -24).toString('utf16le') || undefined,
         flags: chunks[15].slice(-24,-16),
-        date: new Date(chunks[15].slice(-16,-12).readUInt32LE()),
+        date: new Date(1000 * chunks[15].slice(-16,-12).readUInt32LE()),
         body: chunks[14].toString('utf16le').slice(1) || undefined,
         music: chunks[16].toString('utf16le') || undefined,
         mood: chunks[17].slice(-4).toString('utf16le') || undefined,
