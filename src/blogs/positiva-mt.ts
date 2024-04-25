@@ -2,9 +2,9 @@ import { BaseImport, BaseImportOptions } from "../base-importer.js";
 import { type InferSelectModel } from 'drizzle-orm';
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
-import { Json } from "@eatonfyi/serializers";
+import { Frontmatter, FrontmatterInput, Json } from "@eatonfyi/serializers";
 import { BlogSchema, BookmarkSchema, SocialMediaPostingSchema, Thing } from '@eatonfyi/schema';
-import { fromText, fromTextile } from "@eatonfyi/html";
+import { autop, fromText, fromTextile, toMarkdown } from "@eatonfyi/html";
 
 import {
   author,
@@ -14,6 +14,7 @@ import {
   entry,
   pluginData
 } from './util/mt-database.js'
+import jetpack from "@eatonfyi/fs-jetpack";
 
 interface MovableTypeImortOptions extends BaseImportOptions {
   mysql_host?: string;
@@ -76,18 +77,65 @@ export class MovableTypeImport extends BaseImport {
   }
 
   override async readCache(): Promise<CachedData> {
-    this.cache.setSerializer('.json', new Json());
     return Promise.resolve({
-      authors: this.cache.read('authors.json', 'auto'),
-      blogs: this.cache.read('blogs.json', 'auto'),
-      categories: this.cache.read('categories.json', 'auto'),
-      entries: this.cache.read('entries.json', 'auto'),
-      comments:this.cache.read('comments.json', 'auto'),
-      plugins: this.cache.read('plugins.json', 'auto')
+      authors: this.cache.read('authors.json', 'jsonWithDates'),
+      blogs: this.cache.read('blogs.json', 'jsonWithDates'),
+      categories: this.cache.read('categories.json', 'jsonWithDates'),
+      entries: this.cache.read('entries.json', 'jsonWithDates'),
+      comments:this.cache.read('comments.json', 'jsonWithDates'),
+      plugins: this.cache.read('plugins.json', 'jsonWithDates')
     });
   }
 
-  override async process(): Promise<unknown> {
+  override async finalize(): Promise<unknown> {
+    const data = await this.readCache();
+    this.output.setSerializer(".md", new Frontmatter());
+    
+    for (const entry of data.entries) {
+      if (this.options.userList && !this.options.userList.includes(entry.authorId)) continue;
+      if (entry.text === null) continue;
+
+      const md = this.entryToMarkdown(entry);
+      this.output.dir('content').write(`${entry.created.getFullYear()}/mt-${entry.id}.md`, md);
+    }
+    
+    jetpack.copy(this.input.path('files'), this.output.path('media/mt'));
+    return Promise.resolve();
+  }
+
+
+  protected entryToMarkdown(input: InferSelectModel<typeof entry>) {
+    let body = input.text ?? '';
+
+    if (input.more && input.more.trim().length > 0) {
+      body += entry.more;
+    }
+
+    if (input.format === 'textile_2') {
+      body = toMarkdown(fromTextile(body));
+    } else {
+      body = toMarkdown(autop(body, false));
+    }
+
+    const md: FrontmatterInput = {
+      data: {
+        date: {
+          created: input.created,
+          modified: input.modified,
+        },
+        id: { mt: input.id },
+      },
+      content: body
+    };
+
+    if (input.title) md.data.name = input.title;
+    if (input.basename) md.data.slug = input.basename;
+    if (input.keywords && input.keywords.length) md.data.tags = input.keywords;
+
+    return md;
+  }
+
+  async oldProcess(): Promise<unknown> {
     const data = await this.readCache();
 
     // Generate an Organization for SixApart

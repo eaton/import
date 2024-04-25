@@ -3,7 +3,7 @@ import { Client } from '@serguun42/tumblr.js';
 import * as TumblrSchemas from './util/tumblr-schema.js';
 import { BlogSchema, BookmarkSchema, SocialMediaPostingSchema } from '@eatonfyi/schema';
 import { z } from 'zod';
-import { Json } from "@eatonfyi/serializers";
+import { Frontmatter, FrontmatterInput, Json } from "@eatonfyi/serializers";
 import { makeId, normalizeBookmarkUrl } from "../util.js";
 
 interface TumblrImportOptions extends BaseImportOptions {
@@ -79,6 +79,31 @@ export class TumblrImport extends BaseImport {
     })
   }
 
+  override async finalize(): Promise<unknown> {
+    const data = await this.readCache();
+    this.output.setSerializer('.md', new Frontmatter());
+
+    for (const post of data.posts) {
+      if (post.blog_name === 'eaton') continue;
+
+      const entity: FrontmatterInput = {
+        data: {
+          id: { tumblr: `tb-${post.id}` },
+          name: post.title,
+          date: {
+            created: post.timestamp ? { created: new Date(post.timestamp * 1000) } : undefined,
+          },
+          tags: post.tags?.length ? post.tags : [],
+        },
+        content: post.body ?? '',
+      };
+
+      this.output.write(`content/${post.id}.md`, entity);
+    }
+    
+    return Promise.resolve();
+  }
+  
   override async process(): Promise<unknown> {
 
     // Generate an Organization for Tumblr

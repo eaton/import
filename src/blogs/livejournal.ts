@@ -12,7 +12,7 @@
 // note for the slj files \xFF \xFE \xFF appears to be the delimiter between data fields
 
 import { BaseImport, BaseImportOptions } from "../base-importer.js";
-import { extract, ExtractTemplateObject, fromLivejournal, toMarkdown } from "@eatonfyi/html";
+import { extract, ExtractTemplateObject, fromLivejournal, toMarkdown, autop } from "@eatonfyi/html";
 import { Frontmatter, FrontmatterInput } from "@eatonfyi/serializers";
 import { z } from 'zod';
 import { parse as parseDate, isBefore} from '@eatonfyi/dates';
@@ -158,7 +158,7 @@ export class LivejournalImport extends BaseImport {
   }
 
   protected entryToMarkdown(input: LivejournalEntry) {
-    input.body &&= toMarkdown(input.body);
+    input.body &&= toMarkdown(autop(input.body, false));
     const md: FrontmatterInput = {
       data: {
         date: { created: input.date },
