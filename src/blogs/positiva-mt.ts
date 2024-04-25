@@ -16,7 +16,7 @@ import {
 } from './util/mt-database.js'
 import jetpack from "@eatonfyi/fs-jetpack";
 
-interface MovableTypeImortOptions extends BaseImportOptions {
+export interface MovableTypeImortOptions extends BaseImportOptions {
   mysql_host?: string;
   mysql_port?: number;
   mysql_user?: string;

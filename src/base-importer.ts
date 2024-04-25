@@ -24,7 +24,6 @@ export class BaseImport {
   private _input?: typeof jetpack;
   private _cache?: typeof jetpack;
   private _output?: typeof jetpack;
-  private _shared?: typeof jetpack;
   private _logger?: Logger;
 
   /**
