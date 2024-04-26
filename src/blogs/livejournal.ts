@@ -62,10 +62,7 @@ export interface LivejournalImportOptions extends BaseImportOptions {
 export class LivejournalImport extends BaseImport {
   declare options: LivejournalImportOptions;
 
-  protected queue = {
-    entries: [] as LivejournalEntry[],
-    comments: [] as LivejournalComment[],
-  };
+  protected queue: LivejournalEntry[] = [];
 
   constructor(options: LivejournalImportOptions = {}) {
     super({ name: 'livejournal', ...options });
@@ -115,38 +112,37 @@ export class LivejournalImport extends BaseImport {
   }
 
   override async process() {
-    this.queue = { entries: [], comments: [] };
+    this.queue = [];
 
     const data = await this.readCache();
     for (const e of data) {
-      const { comments, ...entry } = e;
 
       // Ignore anything outside the optional dates, they're backdated duplicates from other sources
-      if (this.options.ignoreBefore && isBefore(entry.date, this.options.ignoreBefore)) continue;
-      if (this.options.ignoreAfter && isBefore(entry.date, this.options.ignoreAfter)) continue;
-
-      const formattedEntry = {
-        ...entry,
-        body: fromLivejournal(entry.body ?? '', { breaks: true, usernames: true }),
-        teaser: fromLivejournal(entry.body ?? '', { breaks: true, usernames: true, teaser: true }),
-      }
-      this.queue.entries.push(formattedEntry);
+      if (this.options.ignoreBefore && isBefore(e.date, this.options.ignoreBefore)) continue;
+      if (this.options.ignoreAfter && isBefore(e.date, this.options.ignoreAfter)) continue;
 
       if (!this.options.ignoreComments) {
-        for (const comment of comments ?? []) {
-          comment.entry = entry.id;
-          this.queue.comments.push(comment);
+        for (const comment of e.comments ?? []) {
+          comment.entry = e.id;
         }
       }
+
+      const formattedEntry = {
+        ...e,
+        body: fromLivejournal(e.body ?? '', { breaks: true, usernames: true }),
+        teaser: fromLivejournal(e.body ?? '', { breaks: true, usernames: true, teaser: true }),
+      }
+
+      this.queue.push(formattedEntry);
+
     }
   }
 
   override async finalize() {
     this.output.setSerializer('.md', new Frontmatter());
-    for (const e of this.queue.entries) {
+    for (const e of this.queue) {
       this.output.write(`content/${e.date.getFullYear()}/lj-${e.id}.md`, this.entryToMarkdown(e));
     }
-    this.input.copy('media/lj-photos', this.output.path('media/lj'), { overwrite: true });
   }
 
   protected entryToMarkdown(input: LivejournalEntry) {

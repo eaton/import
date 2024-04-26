@@ -13,6 +13,7 @@ export interface BlogImportOptions extends BaseImportOptions {
   havana?: boolean,
   tumblr?: boolean,
   goddy?: boolean,
+  klips?: boolean,
 }
 
 export class BlogImport extends BaseImport {

@@ -99,10 +99,8 @@ export class MovableTypeImport extends BaseImport {
       this.output.dir('content').write(`${entry.created.getFullYear()}/mt-${entry.id}.md`, md);
     }
     
-    jetpack.copy(this.input.path('files'), this.output.path('media/mt'));
     return Promise.resolve();
   }
-
 
   protected entryToMarkdown(input: InferSelectModel<typeof entry>) {
     let body = input.text ?? '';
