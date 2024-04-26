@@ -68,6 +68,7 @@
     "mysql2": "^3.9.4",
     "node-pinboard": "^2.0.1",
     "pino": "^8.20.0",
-    "smob": "^1.5.0"
+    "smob": "^1.5.0",
+    "twitter-archive-reader": "^7.2.0"
   }
 }
