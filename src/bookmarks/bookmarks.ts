@@ -3,7 +3,7 @@ import { Bookmark, BookmarkSchema } from '@eatonfyi/schema';
 import { z } from 'zod';
 import { Json, Csv, NdJson } from "@eatonfyi/serializers";
 import { extract } from "@eatonfyi/html";
-import { normalizeBookmarkUrl } from "../util.js";
+import { normalizeBookmarkUrl } from "../util/util.js";
 import jetpack from "@eatonfyi/fs-jetpack";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql, { raw } from "mysql2/promise";

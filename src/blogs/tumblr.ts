@@ -4,7 +4,7 @@ import * as TumblrSchemas from './util/tumblr-schema.js';
 import { BlogSchema, BookmarkSchema, SocialMediaPostingSchema } from '@eatonfyi/schema';
 import { z } from 'zod';
 import { Frontmatter, FrontmatterInput, Json } from "@eatonfyi/serializers";
-import { makeId, normalizeBookmarkUrl } from "../util.js";
+import { makeId, normalizeBookmarkUrl } from "../util/util.js";
 
 interface TumblrImportOptions extends BaseImportOptions {
   consumer_key?: string;
